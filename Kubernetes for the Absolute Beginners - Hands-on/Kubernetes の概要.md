@@ -1,0 +1,107 @@
+
+## Docker を使用する理由
+- 環境構築に多くの工数が必要  
+  - Web Server / Database / Messageing / Orchestration など各環境の互換性チェック
+  - OS 間の差異
+  - The Matrix from Hell !! 
+
+上記の問題（＝互換性の問題）を解決する方法　→　環境ごとに必要なコンポーネントなどをまとめてコンテナ化  
+→　Docker で対応
+
+- 環境には Docker がインストールされているだけで良い
+- Docker コマンドを実行することで、環境構築が用意に行える。
+
+## コンテナ : Container
+### 概要
+- 他とは完全に分離された環境であり、各環境に以下のものを含む
+  - 独自のプロセス
+  - サービス
+  - ネットワーク
+  - マウント
+- コンテナはホスト OS の Kernel を共有している  
+  - Kernel を共有することができる OS をコンテナ上で動作させられる  
+    ホスト OS が Linux の場合、コンテナ内で動作するのは Linux Kernel を共有できるディストリビューションが動作する  
+  - 上記がコンテナとハイパーバイザーの違い
+
+### Docker
+- Docker の目的はアプリケーションをコンテナ化し、出荷し、実行すること
+- Docker コマンド  
+  - dokcer run コマンドでイメージ名を指定してインスタンスを作成する  （例）docker run ansible
+- Docker Image = テンプレート
+- Docker Image から Docker コンテナを作成する
+- コンテナは独自の環境とプロセス群を持つイメージに実行インスタンス
+- Docker Image は Docker Hub 上に存在する
+- 依存関係やセットアップ手順などを Dockerfile 　→　Dockerfile をもとの Docker Image を作成
+
+### オーケストレーション : Orchestration
+- 動作する環境などにあわせてコンテナを自動的にデプロイして管理するプロセス全体をコンテナ・オーケストレーションと呼ぶ  
+  - Docker　→　Docker swarm
+  - Google　→　Kubernetes
+  - Apache　→　MESOS　等
+- メリット
+  - 高い可用性  
+    アプリケーションな異なるノード上で複数のインスタンスが動作しているので、ハードウェアの故障でもアプリケーションはダウンしないため
+  - 高い負荷耐性  
+    需要が増加した場合、アプリケーションのインスタンスをシームレスに、数秒のうちに展開可能なため
+  - 高い拡張性  
+    アプリケーションを停止することなく、基盤となるノードの数を増減できるため
+
+## Kubernetes のアーキテクチャー
+
+### ノード : Nodes
+- Kubernetes がインストールされている物理的または仮想的なマシンのこと
+- ワーカーマシンのこと
+- Kubernetes によってコンテンが起動される場所
+
+### クラスター : Cluster
+- グループ化されたノードの集合のこと
+- ノードが複数あることで 1 つのノードに障害が発生した場合でも他のノードでアプリケーションを動作させられる
+- ノードが複数あることで負荷分散を行える
+
+### マスター : Master
+- クラスター内のノードを監視し、ワーカーノード上のコンテナのオーケストレーションを担当する
+
+## コンポーネント : Components
+### Kubernetes を構成するコンポーネント
+Kubernetes をインストールすると、以下のコンポーネントがインストールされる
+- API Server （ kube-api-server ）  
+  - Kubernetes のフロントエンドとして機能  
+  - 管理デバイス、コマンドラインインターフェースなどすべてが API Server 経由で Kubernetes と会話する
+- etcd
+  - Kubernetes がクラスター管理に使用するすべてのデーターを格納する
+  - 分散型のキー・バリュー・ストアー（ Key Value Store  ）
+  - クラスター内に複数のノードと複数のマスターが存在する場合、クラスター内のすべてのノードに情報を分散して保存する
+- kubelet service
+  - クラスター内の各ノードで動作するエージェント
+  - コンテナが期待どおりにノード上で実行されているかどうかを確認する
+- Container Runtime
+  - コンテナの実行を担当する
+    - Docker 等
+- Controllers （ node-controller ）
+  - オーケストレーションの頭脳
+  - ノードやコンテナ、エンドポイントがダウンしたとき、それを検出して対応する
+  - ダウン時に新しいコンテナを登場させるか判断する
+- Schedulers （ replica-controller? ）
+  - 複数のノードに作業やコンテナを分散させる
+  - 新しく作成されたコンテナを探し、ノードに割り当てる
+
+### コンポーネントの配置
+- マスター
+  - API Server
+  - etcd : 収集した情報を格納する Key Value Store
+  - Controllers
+  - Schedulers
+- ワーカー（ミニオン）
+  - Container Runtime : コンテナを動かす
+  - Kubelet : API Server と対話する
+
+## コマンドラインツール
+### kubectl ツール
+- Kubernetes クラスター上のアプリケーションをデプロイしたり管理する
+- クラスター情報を取得したり、クラスター内の他のノードの状態を取得　等
+- kubectl run  
+  - クラスター上にアプリケーションをデプロイする　（例） kubectl run hello-minikube
+- kubectl cluster info
+  - クラスターの情報を表示　（例） kubectl cluster info
+- kubectl get nodes
+  - クラスターに属するすべてのノードをリストアップ　（例） kubectl get nodes
