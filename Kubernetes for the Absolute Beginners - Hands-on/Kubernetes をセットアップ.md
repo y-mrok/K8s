@@ -1,6 +1,8 @@
 # Kubernetes をセットアップ
 
 ## セットアップ環境
+kubectl と以下の環境が必要になる。
+
 - 自分のパソコン（ローカルマシン）  
   - Minikube
     - マスターとワーカー（ミニオン）のコンポーネントを 1 つのイメージにまとめたもの
@@ -14,3 +16,110 @@
   - Microsoft Azuru
   - IBM Cloud
 - ww.kodeKloud.com
+
+## セットアップ
+### 参照ドキュメント
+  - https://www.virtualbox.org/wiki/Linux_Downloads
+  - https://kubernetes.io/docs/tasks/tools/
+  - https://minikube.sigs.k8s.io/docs/start/
+
+### Ubuntu 22.04 LTS Desktop に Minikube をインストール
+### Oracle VirtualBox
+```
+sudo apt -y install ./virtualbox-6.1_6.1.36-152435~Ubuntu~jammy_amd64.deb
+```
+※ "Oracle VM VirtualBox Extension Pack" もインストールすること
+#### kubectl
+```
+snap install kubectl --classic
+kubectl version --client
+```
+#### Minikube
+```
+sudo apt -y install curl
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+sudo dpkg -i minikube_latest_amd64.deb
+minikube start --driver=virtualbox
+```
+上記コマンド実行後、Oracle VM VirtualBox マネージャーで仮想マシン minikube が実行しているのを確認できる。
+
+Minikube のステータス確認
+```
+minikube status
+```
+ステータスの確認結果。API Server と kubelet が動作（ Running ）しており、kubeconfig が構成済み（ configured ）になっている。
+```
+user@k8s:~$ minikube status
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
+user@k8s:~$ 
+```
+#### 動作確認
+```
+kubectl get nodes
+kubectl create deployment hello-minikube --image=k8s.gcr.io/echoserver:1.4
+kubectl get deployment
+kubectl expose deployment hello-minikube --type=NodePort --port=8080
+minikube service hello-minikube --url
+```
+実行ログ
+```
+user@k8s:~$ kubectl get nodes
+NAME       STATUS   ROLES           AGE   VERSION
+minikube   Ready    control-plane   30m   v1.24.3
+user@k8s:~$ kubectl create deployment hello-minikube --image=k8s.gcr.io/echoserver:1.4
+deployment.apps/hello-minikube created
+user@k8s:~$ kubectl get deployment
+NAME             READY   UP-TO-DATE   AVAILABLE   AGE
+hello-minikube   1/1     1            1           48s
+user@k8s:~$ kubectl expose deployment hello-minikube --type=NodePort --port=8080
+service/hello-minikube exposed
+user@k8s:~$ minikube service hello-minikube --url
+http://192.168.59.100:30334
+user@k8s:~$ 
+```
+表示された URL をブラウザーで開くとアプリケーションに関する詳細が表示される
+```
+CLIENT VALUES:
+client_address=172.17.0.1
+command=GET
+real path=/
+query=nil
+request_version=1.1
+request_uri=http://192.168.59.100:8080/
+
+SERVER VALUES:
+server_version=nginx: 1.10.0 - lua: 10001
+
+HEADERS RECEIVED:
+accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+accept-encoding=gzip, deflate
+accept-language=ja,en-US;q=0.7,en;q=0.3
+connection=keep-alive
+host=192.168.59.100:30334
+upgrade-insecure-requests=1
+user-agent=Mozilla/5.0 (X11; Linux x86_64; rv:103.0) Gecko/20100101 Firefox/103.0
+BODY:
+-no body in request
+```
+#### クリーンアップ
+```
+kubectl delete services hello-minikube
+kubectl delete deployment hello-minikube
+kubectl get pods
+```
+実行ログ
+```
+user@k8s:~$ kubectl delete services hello-minikube
+service "hello-minikube" deleted
+user@k8s:~$ kubectl delete deployment hello-minikube
+deployment.apps "hello-minikube" deleted
+user@k8s:~$ kubectl get pods
+No resources found in default namespace.
+user@k8s:~$ 
+```
